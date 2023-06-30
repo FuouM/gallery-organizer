@@ -152,10 +152,11 @@ def is_pixiv(string: str) -> dict:
                     pixiv_info["link"] = f"https://www.pixiv.net/en/artworks/{post_id}"
                     pixiv_info["page"] = match.group(2)
                     extra = match.group(3)
+                    pixiv_info["extra"] = []
                     if extra:
-                        pixiv_info["extra"] = extra
+                        pixiv_info["extra"].append(extra)
                     if raw:
-                        pixiv_info["extra"] += raw
+                        pixiv_info["extra"].append(raw)
                         
     return pixiv_info
 

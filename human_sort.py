@@ -17,9 +17,9 @@ dump_file = open("file_dump.txt", "r", encoding="utf8")
 file_lists = [x.strip() for x in dump_file.readlines()]
 
 dump_file.close()
-output_dump = open("output_dump.csv", "w", encoding="utf8")
+# output_dump = open("output_dump.csv", "w", encoding="utf8")
 
-output_dump.write("type, filename, extract")
+# output_dump.write("type, filename, extract")
 
 print(f"Total files: {len(file_lists)}")
 
@@ -73,4 +73,4 @@ num_start = 0
 num_end = 7807
 general_test(file_lists, 0, 8000)
 print("*" * 30)
-output_dump.close()
+# output_dump.close()
