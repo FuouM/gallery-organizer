@@ -183,3 +183,76 @@ class is_pixiv_post(is_gallery_type):
                     else:
                         tmp_extra.append(sub_group)
         return tmp_id, tmp_pg, tmp_extra
+
+class is_yandere_post(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("yandere_id")
+        self.prefix = "yande.re"
+        self.link_template = "https://yande.re/post/show/"
+        self._delimiter = " "
+    
+    def test(self, string: str) -> dict:
+        if string.startswith(self.prefix):
+            raw = string.split(self._delimiter)
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "post_id": raw[1],
+                "tags": raw[2:],
+                "link": self.link_template + raw[1]
+            }
+        return {}
+    
+class is_gelbooru_post(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("gelbooru_id")
+        self.prefix = "gelbooru"
+        self.link_template = "https://gelbooru.com/index.php?page=post&s=view&id="
+        
+    def test(self, string: str) -> dict:
+        if string.startswith(self.prefix):
+            raw = string.split(self._delimiter)
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "post_id": raw[1],
+                "extra": raw[2:],
+                "link": self.link_template + raw[1]
+            }
+        return {}
+
+class is_hash_string(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("hash_string")
+        self.patterns = [re.compile(regex) for regex in (
+            '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}',
+            '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'
+        )]
+    
+    def test(self, string: str) -> dict:
+        if any(regex.search(string) for regex in self.patterns):
+            return {
+                "type": self.gallery_type,
+                "raw" : string
+            }
+        return {}
+    
+class is_release_shot(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("release_screenshot")
+        self.prefix = "["
+        self.magic_words = {
+            "720p", "1080p", "h264", "H264", "mkv", "HEVC", "BDRip", "OVA", "X264",
+            "720P", "1080P", "BD ", "AAC"
+        }
+        self.bracket_regex = re.compile(r'\[(.*?)\]')
+    
+    def test(self, string: str) -> dict:
+        if any(magic in string for magic in self.magic_words):
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "extra_1": re.findall(self.bracket_regex, string),
+                "extra_2": re.sub(self.bracket_regex, '', string)
+            } 
+        return {}

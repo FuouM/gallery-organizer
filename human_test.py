@@ -12,9 +12,17 @@ st = time.time()
 # Test x3 no print
 # 4chan: 0.13s
 # Twitter: 0.08s
+# pixiv: 0.09s
+# yandere: 0.01s, gelbooru: 0.01s
+# hash: 0.05s
+# release: 0.07s
 is_4chan = is_4chan_timestamp()
 is_twitter = is_twitter_key()
 is_pixiv = is_pixiv_post()
+is_yandere = is_yandere_post()
+is_gelbooru = is_gelbooru_post()
+is_hash = is_hash_string()
+is_release = is_release_shot()
 def run_test():
     for i, filename in enumerate(file_lists):
         # if tmp:= is_4chan.test(filename):
@@ -23,8 +31,23 @@ def run_test():
         # if tmp:= is_twitter.test(filename):
         #     print(f"{i:<3}| Match {is_twitter.gallery_type} {tmp}")
         #     pass
-        if tmp:= is_pixiv.test(filename):
-            print(f"{i:<3}| Match {is_pixiv.gallery_type} {tmp}")
+        # if tmp:= is_pixiv.test(filename):
+        #     print(f"{i:<3}| Match {is_pixiv.gallery_type} {tmp}")
+        #     pass
+        # if tmp:= is_yandere.test(filename):
+        #     print(f"{i:<3}| Match {is_yandere.gallery_type} {tmp}")
+        #     pass
+        # if tmp:= is_gelbooru.test(filename):
+        #     print(f"{i:<3}| Match {is_gelbooru.gallery_type} {tmp}")
+        #     pass
+        # if tmp:= is_hash.test(filename):
+        #     print(f"{i:<3}| Match {is_hash.gallery_type} {tmp}")
+        #     pass
+        # if tmp:= is_release.test(filename):
+        #     print(f"{i:<3}| Match {is_release.gallery_type} {tmp}")
+        #     pass
+        if tmp:= is_release.test(filename):
+            # print(f"{i:<3}| Match {is_release.gallery_type} {tmp}")
             pass
 
 run_test()
