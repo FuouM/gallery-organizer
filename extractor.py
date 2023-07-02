@@ -1,5 +1,6 @@
 import re
 import datetime
+from urllib.parse import unquote
 
 class is_gallery_type:
     def __init__(self, gallery_type: str) -> None:
@@ -256,3 +257,92 @@ class is_release_shot(is_gallery_type):
                 "extra_2": re.sub(self.bracket_regex, '', string)
             } 
         return {}
+    
+class is_soundfile_post(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("soundfile_dl")
+        self._dl_prefix = "[sound="
+        self._base_url  = "http://"
+        self._dl_suffix = "]"
+    
+    def test(self, string: str) -> dict:
+        if self._dl_prefix in string:
+            raws = self.parse_soundfile(string)
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "link": raws[0],
+                "extra": raws[1],
+            }
+        return {}
+    
+    def parse_soundfile(self, string: str):
+        raws = string.split(self._dl_prefix)
+        filename = raws[0]
+        link, extra = raws[1].split(self._dl_suffix)
+        link = unquote(link)
+        if not link.startswith(self._base_url):
+            link = self._base_url + link
+            
+        if extra:
+            return (link, [filename, extra])
+        else:
+            return (link, filename)
+
+class is_not_ASCII(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("non_ascii")
+    
+    def test(self, string: str) -> dict:
+        if not string.isascii():
+            ascii_chars, unicode_chars = self.separate_ascii(string)
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "ascii": ascii_chars,
+                "unicode": unicode_chars
+            }
+        return {}
+    
+    def separate_ascii(self, string: str):
+        if string.isascii():
+            return string
+        ascii_chars = []
+        unicode_chars = []
+        for char in string:
+            if char.isascii():
+                ascii_chars.append(char)
+            else:
+                unicode_chars.append(char)
+                
+        return ["".join(chars) for chars in [ascii_chars, unicode_chars]]
+
+
+class is_manga_page(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("manga_page")
+        self.pattern = re.compile(r"^(.*?)\s-\sc(\d+).*?\-\sp(\d+).*")
+        self.magic_words = (
+            "Volume", "volume", "Vol.", "vol.",
+            "Chapter", "chapter", "Ch.", "ch."
+            "Page", "page", "Pg.",
+            "_raw_"
+        )
+        
+    def test(self, string: str) -> dict:
+        match = re.search(self.pattern, string)
+        if match:
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "title": match.group(1),
+                "chapter": match.group(2),
+                "page": match.group(3)
+            }
+        if any(magic in string for magic in self.magic_words):
+            return {
+                "type": self.gallery_type,
+                "raw" : string
+            }
+        return {}
+        

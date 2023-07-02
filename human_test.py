@@ -16,6 +16,7 @@ st = time.time()
 # yandere: 0.01s, gelbooru: 0.01s
 # hash: 0.05s
 # release: 0.07s
+# soundfile: 0.01s
 is_4chan = is_4chan_timestamp()
 is_twitter = is_twitter_key()
 is_pixiv = is_pixiv_post()
@@ -23,14 +24,17 @@ is_yandere = is_yandere_post()
 is_gelbooru = is_gelbooru_post()
 is_hash = is_hash_string()
 is_release = is_release_shot()
+is_soundfile = is_soundfile_post()
+is_non_ascii = is_not_ASCII()
+is_manga = is_manga_page()
 def run_test(test_type):
     for i, filename in enumerate(file_lists):
         if tmp:= test_type.test(filename):
             print(f"{i:<3}| Match {test_type.gallery_type} {tmp}")
             pass
-
-run_test(is_release)
-# run_test()
-# run_test()
+current_test = is_manga
+run_test(current_test)
+# run_test(current_test)
+# run_test(current_test)
 # print(is_pixiv.test("gwitch_suletta_ham_Mineori_108521179_p0"))
 print(f"\nTime taken: {time.time() - st:.2f}s")
