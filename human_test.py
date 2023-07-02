@@ -9,14 +9,7 @@ dump_file.close()
 print(f"Total files: {len(file_lists)}")
 
 st = time.time()
-# Test x3 no print
-# 4chan: 0.13s
-# Twitter: 0.08s
-# pixiv: 0.09s
-# yandere: 0.01s, gelbooru: 0.01s
-# hash: 0.05s
-# release: 0.07s
-# soundfile: 0.01s
+is_tagged = is_tagged_string()
 is_4chan = is_4chan_timestamp()
 is_twitter = is_twitter_key()
 is_pixiv = is_pixiv_post()
@@ -27,13 +20,32 @@ is_release = is_release_shot()
 is_soundfile = is_soundfile_post()
 is_non_ascii = is_not_ASCII()
 is_manga = is_manga_page()
-def run_test(test_type):
+is_meaningful = is_meaningful_text()
+# Ordered by probability and importance
+tests = [
+    is_tagged
+    ,is_4chan
+    ,is_pixiv
+    ,is_yandere
+    ,is_gelbooru
+    ,is_release
+    ,is_manga
+    ,is_soundfile
+    # is screenshot
+    ,is_meaningful
+    ,is_twitter
+    ,is_hash
+    ,is_non_ascii
+    # is random (default case)
+]
+def run_test():
     for i, filename in enumerate(file_lists):
-        if tmp:= test_type.test(filename):
-            print(f"{i:<3}| Match {test_type.gallery_type} {tmp}")
-            pass
+        for test_type in tests:
+            if tmp:= test_type.test(filename):
+                print(f"{i:<3}| Match {test_type.gallery_type} {tmp}")
+                break
 current_test = is_manga
-run_test(current_test)
+run_test()
 # run_test(current_test)
 # run_test(current_test)
 # print(is_pixiv.test("gwitch_suletta_ham_Mineori_108521179_p0"))

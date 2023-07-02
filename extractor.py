@@ -9,7 +9,10 @@ class is_gallery_type:
         self._delimiter_thres = 2
     
     def test(self, string: str) -> dict:
-        return {"raw": string}
+        return {
+            "type": self.gallery_type,
+            "raw": string
+        }
 
 class is_4chan_timestamp(is_gallery_type):
     def __init__(self) -> None:
@@ -307,15 +310,10 @@ class is_not_ASCII(is_gallery_type):
     def separate_ascii(self, string: str):
         if string.isascii():
             return string
-        ascii_chars = []
-        unicode_chars = []
-        for char in string:
-            if char.isascii():
-                ascii_chars.append(char)
-            else:
-                unicode_chars.append(char)
-                
-        return ["".join(chars) for chars in [ascii_chars, unicode_chars]]
+        ascii_chars = ''.join([char for char in string if char.isascii()])
+        unicode_chars = ''.join([char for char in string if not char.isascii()])
+        return [ascii_chars, unicode_chars]
+
 
 
 class is_manga_page(is_gallery_type):
@@ -345,4 +343,67 @@ class is_manga_page(is_gallery_type):
                 "raw" : string
             }
         return {}
-        
+
+class is_meaningful_text(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("meaningful")
+        from nostril import nonsense
+        self.nonsense = nonsense
+        self.min_length = 6 # nonsense's input min_length = 6 (only count ascii, alpha, nospace)
+        self.alpha_thres = 2
+    
+    def test(self, string: str) -> dict:
+        alpha, num = self.separate_alpha_num(string)
+        alpha_trim = alpha.replace(" ", "")
+        trim_len = len(alpha_trim)
+        if trim_len < self.min_length and trim_len - len(num) > self.alpha_thres \
+            or trim_len >= self.min_length and not self.nonsense(string):
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "alpha": alpha,
+                "num" : num
+            }
+            
+        return {}
+    
+    def separate_alpha_num(self, string: str) -> tuple[str, str]:
+        alpha = ''.join([char for char in string if char.isalpha() and char.isascii()])
+        num = ''.join([char for char in string if char.isnumeric()])
+        return alpha, num
+
+class is_tagged_string(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("tagged")
+        self._delimiter = "__"
+        self._artist = "_drawn_by_"
+        self._sample = "sample-"
+        # __[tags...]_drawn_by_[artist]__[hash]
+        # __[tags...]_[series]_drawn_by_[artist]__sample-[hash]
+    
+    def test(self, string: str) -> dict:
+        if not string.startswith(self._delimiter):
+            return {}
+
+        raws = string.split(self._delimiter)
+        tags_artist = raws[1]
+        if self._artist in tags_artist:
+            tags, artist = tags_artist.split(self._artist)
+        else:
+            tags = tags_artist
+            artist = "is_empty"
+
+        result = {
+            "type": self.gallery_type,
+            "raw": string,
+            "tags": tags,
+            "artist": artist
+        }
+
+        if len(raws) > 3:
+            img_hash = raws[2].removeprefix(self._sample)
+            result["hash"] = img_hash
+
+        return result
+
+            
