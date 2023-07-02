@@ -321,9 +321,10 @@ class is_manga_page(is_gallery_type):
         super().__init__("manga_page")
         self.pattern = re.compile(r"^(.*?)\s-\sc(\d+).*?\-\sp(\d+).*")
         self.magic_words = (
-            "Volume", "volume", "Vol.", "vol.",
-            "Chapter", "chapter", "Ch.", "ch."
-            "Page", "page", "Pg.",
+            "Vol.", "vol.", "Ch.", "ch.", "Pg.",
+            "Volume", "volume", 
+            "Chapter", "chapter", 
+            "Page", "page", 
             "_raw_"
         )
         
