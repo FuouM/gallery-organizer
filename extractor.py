@@ -1,25 +1,11 @@
 import re
 import datetime
 from urllib.parse import unquote
+from typing import Optional
 
-class is_gallery_type:
-    def __init__(self, gallery_type: str) -> None:
-        self.gallery_type = gallery_type
-        self._delimiter = "_"
-        self._delimiter_thres = 2
-    
-    def test(self, string: str) -> dict:
-        return {
-            "type": self.gallery_type,
-            "raw": string
-        }
 
-class is_4chan_timestamp(is_gallery_type):
+class datetime_processor:
     def __init__(self) -> None:
-        super().__init__(
-            "4chan_timestamp"
-        )
-        
         self.divisor_map = {
             16: 1_000_000,
             13: 1_000,
@@ -30,10 +16,47 @@ class is_4chan_timestamp(is_gallery_type):
         self.date_format = r'%Y%m%d'
         self.timezone = datetime.timezone.utc
     
+    def find_timestamp(self, substrings: list[str]):
+        for raw in substrings:
+            raw_length = len(raw)
+            if raw.isnumeric() and any(raw_length == x for x in (10, 13, 16)):
+                raw_date = self.timestamp_to_datetime(
+                    int(raw), divisor=self.divisor_map[raw_length])
+                if raw_date:
+                    return raw_date
+        return None
+
+    def timestamp_to_datetime(self, timestamp: float, divisor=1_000_000) -> str:
+        timestamp /= divisor
+        dt = datetime.datetime.fromtimestamp(timestamp, tz=self.timezone)
+        if dt.year > self.year:
+            return ""
+        return dt.strftime(self.date_format)
+
+class is_gallery_type:
+    def __init__(self, gallery_type: str) -> None:
+        self.gallery_type = gallery_type
+        self._delimiter = "_"
+        self._delimiter_thres = 3
+    
+    def test(self, string: str) -> dict:
+        return {
+            "type": self.gallery_type,
+            "raw": string
+        }
+
+class is_4chan_timestamp(is_gallery_type):
+    def __init__(self, dt_processor: Optional[datetime_processor] = None) -> None:
+        super().__init__("4chan_timestamp")
+        if dt_processor is None:
+            self.dt_processor = datetime_processor()
+        else:
+            self.dt_processor = dt_processor
+    
     def test(self, string: str) -> dict:
         raws = self.preprocess(string)
         if raws:
-            raw_date = self.find_timestamp(raws)
+            raw_date = self.dt_processor.find_timestamp(raws)
             if raw_date:
                 return {
                     "type": self.gallery_type,
@@ -41,24 +64,6 @@ class is_4chan_timestamp(is_gallery_type):
                     "datetime": raw_date
                 }
         return {}
-
-        
-    def find_timestamp(self, substrings):
-        for raw in substrings:
-            raw_length = len(raw)
-            if raw.isnumeric() and any(raw_length == x for x in (10, 13, 16)):
-                raw_date = self._timestamp_to_datetime(
-                    int(raw), divisor=self.divisor_map[raw_length])
-                if raw_date:
-                    return raw_date
-        return None
-
-    def _timestamp_to_datetime(self, timestamp: float, divisor=1_000_000) -> str:
-        timestamp /= divisor
-        dt = datetime.datetime.fromtimestamp(timestamp, tz=self.timezone)
-        if dt.year > self.year:
-            return ""
-        return dt.strftime(self.date_format)
 
     def preprocess(self, string: str):
         substrings = string.split(self._delimiter)
@@ -71,13 +76,24 @@ class is_twitter_key(is_gallery_type):
         super().__init__("twitter_key")
         self.possible_prefix = "media_"
         self.possible_suffixes = (
-            ".jpg_large", ".jpg large", ".jpg_orig"
-            ".png_large", ".png large", ".png_orig"
+            ".jpg_large", ".jpg large", ".jpg_orig",
+            ".png_large", ".png large", ".png_orig",
             "-orig",  "-stitch"
         )
+        self.special_pattern = re.compile(r'(.*-\d{19})-img(\d+)')
         self.length = 15
+        self.possible_delimiter = " "
     
     def test(self, string: str) -> dict:
+        match = re.search(self.special_pattern, string)
+        if match:
+            before, number = match.groups()
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "artist" : before,
+                "number": number
+            }
         raw, is_hit = self.preprocess(string)
         if raw and is_hit:
             assert type(raw) is str
@@ -87,6 +103,12 @@ class is_twitter_key(is_gallery_type):
                 "id"  : raw
             }
         elif raw:
+            if type(raw) == str:
+                return {
+                    "type": self.gallery_type,
+                    "raw" : string,
+                    "id": raw
+                }
             tmp_id, tmp_extra = self.find_id_and_extra(raw)
             if tmp_id:
                 return {
@@ -111,13 +133,18 @@ class is_twitter_key(is_gallery_type):
         return tmp_id, tmp_extra
     
     def preprocess(self, string: str):
+        string = string.strip()
         is_hit = True
         if string.startswith(self.possible_prefix):
             return (string.removeprefix(self.possible_prefix), is_hit)
         for suffix in self.possible_suffixes:
             if string.endswith(suffix):
                 return (string.removesuffix(suffix), is_hit)
+        if len(string) == self.length:
+            return (string, False)
         substrings = string.split(self._delimiter)
+        if len(substrings) == 1:
+            substrings = string.split(self.possible_delimiter)
         if len(substrings) > self._delimiter_thres:
             return None, False
         return (substrings, False)
@@ -127,21 +154,41 @@ class is_pixiv_post(is_gallery_type):
         super().__init__("pixiv_id")
         self.link_template = "https://www.pixiv.net/en/artworks/"
         self.prefixes = {
-            "page": ["p_", "P_"],
+            "page": ["p_", "P_", "p-"],
             "illust": "illust_" # illust_98246152_20220513_212357
         }
         self.pattern = re.compile(r"^(?:(.+)_)?p(\d+)(?:[\s_](.+))?$")
+        self.page_pattern = re.compile(r'(.*)_p(\d+)(.*)')
         self.page_thres = 1000
     
     def test(self, string: str) -> dict:
-        result = self.parse_illust_prefix(string)
-        if result:
-            return result
-        result = self.parse_pattern(string)
-        if result:
-            return result
+        methods = [self.parse_page, 
+                   self.parse_illust_prefix,
+                   self.parse_pattern
+                ]
+        for method in methods:
+            result = method(string)
+            if result:
+                return result
         return {}
 
+    def parse_page(self, string: str):
+        for prefix in self.prefixes["page"]:
+            if string.startswith(prefix) :
+                return {
+                    "type": self.gallery_type,
+                    "raw": string,
+                    "page" : string.removeprefix(prefix),
+                }
+        match = re.search(self.page_pattern, string)
+        if match:
+            before, page, after = match.groups()
+            return {
+                "type": self.gallery_type,
+                "raw": string,
+                "page": page,
+                "extra": (" ".join((before, after))).strip()
+            }
 
     def parse_illust_prefix(self, string: str):
         if string.startswith(self.prefixes["illust"]):
@@ -407,4 +454,195 @@ class is_tagged_string(is_gallery_type):
 
         return result
 
+class is_photo(is_gallery_type):
+    def __init__(self, dt_processor: Optional[datetime_processor] = None) -> None:
+        super().__init__("photo")
+        self.prefixes = {
+            "img": ("IMG_", "img_"),
+            "img_dt": "IMG-",
+            "fb" : "FB_IMG",
+            "photo": "photo_"
+        }
+        if dt_processor is None:
+            self.dt_processor = datetime_processor()
+        else:
+            self.dt_processor = dt_processor
             
+    def test(self, string: str) -> dict:
+        if string.startswith(self.prefixes["img_dt"]):
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "extra": string.removeprefix(self.prefixes["img_dt"])
+            }
+        for prefix in self.prefixes["img"]:
+            if string.startswith(prefix):
+                raws = string.split(self._delimiter)
+                # IMG_[date]_[extra]
+                if len(raws[1]) == 8:
+                    return {
+                        "type": self.gallery_type,
+                        "raw" : string,
+                        "date": raws[1],
+                        "extra": raws[2:]
+                    }
+                else:
+                    return {
+                        "type": self.gallery_type,
+                        "raw" : string,
+                        "extra": raws[1:]
+                    }
+        if string.startswith(self.prefixes["fb"]):
+            raws = string.split(self._delimiter)
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "datetime": self.dt_processor.timestamp_to_datetime(int(raws[-1]), 1000),
+            }
+        if string.startswith(self.prefixes["photo"]):
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "extra": string.removeprefix(self.prefixes["photo"]),
+            }
+        return {}
+
+class is_screen_shot(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("screenshot")
+        self.pattern = re.compile(r'(.*?)(\bscreen[-_\s]?shot\b)(.*)', re.IGNORECASE)
+        self.prefixes = {
+            "mpv": "mpv-shot",
+            "vlc": "vlcsnap-"
+        }
+        self.vlc_pattern = re.compile(r'(\d{4}-\d{2}-\d{2})-(\d{2})h(\d{2})m(\d{2})s(\d{3})')
+        
+    def test(self, string: str) -> dict:
+        match = re.search(self.pattern, string)
+        if match:
+            before, _, after = match.groups()
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "output": (" ".join((before, after))).strip()
+            }
+        if string.startswith(self.prefixes["vlc"]):
+            match = re.search(self.vlc_pattern, string)
+            if match:
+                date = match.group(1)
+                hour = match.group(2)
+                minute = match.group(3)
+                second = match.group(4)
+                millisecond = match.group(5)
+                
+                return {
+                    "type": self.gallery_type,
+                    "raw" : string,
+                    "date": date,
+                    "time": f"{hour}:{minute}:{second}.{millisecond}"
+                }
+                
+            else:
+                return {
+                    "type": self.gallery_type,
+                    "raw" : string,
+                    "extra": string.removeprefix(self.prefixes["vlc"])
+                }
+        
+        if string.startswith(self.prefixes["mpv"]):
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "extra": string.removeprefix(self.prefixes["mpv"])
+            }
+        return {}
+
+class is_site_from(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("semirandom")
+        self.site_prefixes = {
+            "twitter": "twitter.com",
+            "tumblr" : "tumblr_",
+            "seiga": "seiga.nicovideo.jp"
+        }
+    
+    def test(self, string: str) -> dict:
+        for site, prefix in self.site_prefixes.items():
+            if string.startswith(prefix):
+                return {
+                    "type": "site",
+                    "raw": string,
+                    "site": site,
+                    "extra": string.removeprefix(prefix)
+                }
+        return {}
+
+class is_misc_semirandom(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("semirandom")
+        self.prefixes = {
+            "sample": ["sample_", "sample-"],
+            "default": (
+                "file", "image_", "image-", "images", "image.", "i-", "maxresdefault", 
+                "download", "Download", "Clipboard", "clipboard",
+                "Illustration", "illustration"
+            ),
+            "ezgif": ["ezgif-"],
+            
+        }
+        self.pixiv_id_len = 7 # 2303363
+    
+    def test(self, string: str) -> dict:
+        for prefixes in (self.prefixes["sample"],
+                       self.prefixes["ezgif"]):
+            for prefix in prefixes:
+                if string.startswith(prefix):
+                    return {
+                        "type": self.gallery_type,
+                        "raw" : string,
+                        "prefix": prefix,
+                        "extra": string.removeprefix(prefix)
+                    }
+        
+        for default in self.prefixes["default"]:
+            if string.startswith(default):
+                return {
+                    "type": self.gallery_type,
+                    "raw" : string,
+                    "rand_type": "default",
+                    "extra": string.removeprefix(default)
+                }
+                
+        if string[:self.pixiv_id_len].isnumeric() and string[0] != "0":
+            return {
+                "type": self.gallery_type,
+                "raw" : string,
+                "rand_type": "possible_pixiv",
+                "id": string[:self.pixiv_id_len],
+                "extra": string[self.pixiv_id_len:]
+            }
+        return {}
+
+class is_date_time(is_gallery_type):
+    def __init__(self) -> None:
+        super().__init__("datetime")
+        self.patterns = {
+            "yyyyxxxx_tttttt": re.compile(r'(\d{8})_(\d{6}).*'),
+            "yyyy-xx-xx[-_ ]tt_tt_tt": re.compile(r'(\d{4}-\d{2}-\d{2})[-_\s](\d{2}[-_]\d{2}[-_]\d{2})'),
+            "yy-xx-xx-tttttt": re.compile(r'(\d{4}-\d{2}-\d{2})[-_](\d{6})'),
+            }
+    
+    def test(self, string: str) -> dict:
+        for pattern in self.patterns.values():
+            match = re.search(pattern, string)
+            if match:
+                # if len(match.groups()) :
+                return {
+                    "type": self.gallery_type,
+                    "raw" : string,
+                    "date" : match.group(0),
+                    "time" : match.group(1),
+                    "extra" : match.group(2)
+                }
+        return {}
+    
