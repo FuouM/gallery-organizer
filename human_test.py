@@ -1,12 +1,9 @@
+import os
 import time
 from extractor import *
 
 test_folder = "test/raw"
-dump_file = open("file_dump.txt", "r", encoding="utf8")
-file_lists = [x.strip() for x in dump_file.readlines()]
 
-dump_file.close()
-print(f"Total files: {len(file_lists)}")
 
 st = time.time()
 is_tagged = is_tagged_string()
@@ -40,25 +37,46 @@ tests = [
     ,is_screenshot
     ,is_photo_file
     ,is_site
+    ,is_misc
     ,is_meaningful
     ,is_twitter
     ,is_hash
     ,is_non_ascii
-    ,is_misc
+    ,
     # is random (default case)
 ]
-def run_test():
-    for i, filename in enumerate(file_lists):
+# o
+
+def run_test(tests: list[is_gallery_type], dump_file_path: str, dump=False, output_path="dump_files/output_dump.txt"):
+    dump_file = open(dump_file_path, "r", encoding="utf8")
+    file_lists = [x.strip() for x in dump_file.readlines()]
+
+    dump_file.close()
+    print(f"Total files: {len(file_lists)}")
+    output_dump = None
+    if dump:
+        output_dump = open(output_path, "w", encoding="utf8")
+        
+    for i, file_path in enumerate(file_lists):
+        file_raw = os.path.splitext(file_path.strip())
+        filename = file_raw[0]
         for test_type in tests:
             if tmp:= test_type.test(filename):
+                if output_dump is not None:
+                    output_dump.write(f"{i:<3}| Match {test_type.gallery_type} {tmp}\n")
                 print(f"{i:<3}| Match {test_type.gallery_type} {tmp}")
                 break
         else:
+            if output_dump is not None:
+                output_dump.write(f"{i:<3}| No match found (random) {repr(filename)}\n")
             print(f"{i:<3}| No match found (random) {repr(filename)}")
-current_test = is_manga
-run_test()
 
-# run_test(current_test)
-# run_test(current_test)
+    if output_dump is not None:
+        output_dump.close()
+
+run_test(tests, "dump_files/file_path_dump.txt")
+# output_dump.close()
+
 # print(is_pixiv.test("gwitch_suletta_ham_Mineori_108521179_p0"))
+
 print(f"\nTime taken: {time.time() - st:.2f}s")

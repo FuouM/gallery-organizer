@@ -399,8 +399,12 @@ class is_meaningful_text(is_gallery_type):
         self.nonsense = nonsense
         self.min_length = 6 # nonsense's input min_length = 6 (only count ascii, alpha, nospace)
         self.alpha_thres = 2
+        self.twitter_prefix = is_twitter_key().possible_prefix
+        
     
     def test(self, string: str) -> dict:
+        if string.startswith(self.twitter_prefix):
+            return {}
         alpha, num = self.separate_alpha_num(string)
         alpha_trim = alpha.replace(" ", "")
         trim_len = len(alpha_trim)
@@ -448,7 +452,7 @@ class is_tagged_string(is_gallery_type):
             "artist": artist
         }
 
-        if len(raws) > 3:
+        if len(raws) == 3:
             img_hash = raws[2].removeprefix(self._sample)
             result["hash"] = img_hash
 
@@ -510,7 +514,7 @@ class is_photo(is_gallery_type):
 class is_screen_shot(is_gallery_type):
     def __init__(self) -> None:
         super().__init__("screenshot")
-        self.pattern = re.compile(r'(.*?)(\bscreen[-_\s]?shot\b)(.*)', re.IGNORECASE)
+        self.pattern = re.compile(r'(.*?)(screen[-_\s]?shot)(.*)', re.IGNORECASE)
         self.prefixes = {
             "mpv": "mpv-shot",
             "vlc": "vlcsnap-"
@@ -583,7 +587,8 @@ class is_misc_semirandom(is_gallery_type):
         self.prefixes = {
             "sample": ["sample_", "sample-"],
             "default": (
-                "file", "image_", "image-", "images", "image.", "i-", "maxresdefault", 
+                "Untitled", "untitled", "file", "image_", "image-", "images", "image.", "i-",
+                "maxresdefault", 
                 "download", "Download", "Clipboard", "clipboard",
                 "Illustration", "illustration"
             ),
@@ -628,8 +633,8 @@ class is_date_time(is_gallery_type):
         super().__init__("datetime")
         self.patterns = {
             "yyyyxxxx_tttttt": re.compile(r'(\d{8})_(\d{6}).*'),
-            "yyyy-xx-xx[-_ ]tt_tt_tt": re.compile(r'(\d{4}-\d{2}-\d{2})[-_\s](\d{2}[-_]\d{2}[-_]\d{2})'),
-            "yy-xx-xx-tttttt": re.compile(r'(\d{4}-\d{2}-\d{2})[-_](\d{6})'),
+            "yyyy-xx-xx[-_ ]tt_tt_tt": re.compile(r'(\d{4}-\d{2}-\d{2})[-_\s](\d{2}[-_]\d{2}[-_]\d{2}).*'),
+            "yy-xx-xx-tttttt": re.compile(r'(\d{4}-\d{2}-\d{2})[-_](\d{6}).*'),
             }
     
     def test(self, string: str) -> dict:
