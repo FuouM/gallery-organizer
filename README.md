@@ -2,14 +2,14 @@
 Organize massive amount of untagged randomly-named images (Experiment)
 
 ## The process
-1. Separate files by their file name (We are here)
+1. Separate files by their file name 
     - Sometimes, we want to keep the file name because they contain meaning created by the poster that may not be in the content of the image
     - We would like to preserve those "manually-named" files and only tag "unamed" files, such as timestamp or hash
     - High entropy --> Low entropy
 
 2. Use AI to tag images
-    * DeepDanbooru
-        - Anime vs Non-Anime images
+    * DeepDanbooru (We are here)
+        - Anime vs Non-Anime images (Anime only currently)
         - Characters and Series they belong to
     * OCR
         - Text content 
@@ -25,12 +25,32 @@ Organize massive amount of untagged randomly-named images (Experiment)
     - Comparison (slow)
     - AI?
 
+### Set up environment
+```
+conda create -n "gallery-organizer" python<3.11
+conda activate gallery-organizer
+python -m venv venv
+```
+
 ### Activate venv
 ```
-.venv\Scripts\activate
+venv\Scripts\activate
 ```
 
 ### Libraries used
 ```
+pip install --upgrade tqdm # Important, else you'll get syscheckinterval error
 pip install git+https://github.com/casics/nostril.git
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+```
+
+### Repositories used
+```
+git clone https://github.com/AUTOMATIC1111/TorchDeepDanbooru.git
+```
+
+### Models used
+Place in model/DeepDanbooru folder
+```
+https://github.com/AUTOMATIC1111/TorchDeepDanbooru/releases/download/v1/model-resnet_custom_v3.pt 
 ```

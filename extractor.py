@@ -357,11 +357,15 @@ class is_not_ASCII(is_gallery_type):
     def separate_ascii(self, string: str):
         if string.isascii():
             return string
-        ascii_chars = ''.join([char for char in string if char.isascii()])
-        unicode_chars = ''.join([char for char in string if not char.isascii()])
-        return [ascii_chars, unicode_chars]
+        ascii_chars = []
+        unicode_chars = []
+        for char in string:
+            if char.isascii():
+                ascii_chars.append(char)
+            else:
+                unicode_chars.append(char)
 
-
+        return ''.join(ascii_chars), ''.join(unicode_chars)
 
 class is_manga_page(is_gallery_type):
     def __init__(self) -> None:
@@ -420,9 +424,16 @@ class is_meaningful_text(is_gallery_type):
         return {}
     
     def separate_alpha_num(self, string: str) -> tuple[str, str]:
-        alpha = ''.join([char for char in string if char.isalpha() and char.isascii()])
-        num = ''.join([char for char in string if char.isnumeric()])
-        return alpha, num
+        alpha = []
+        num = []
+        for char in string:
+            if char.isascii():
+                if char.isalpha():
+                    alpha.append(char)
+                elif char.isnumeric():
+                    num.append(char)
+        
+        return ''.join(alpha), ''.join(num)
 
 class is_tagged_string(is_gallery_type):
     def __init__(self) -> None:
@@ -430,12 +441,20 @@ class is_tagged_string(is_gallery_type):
         self._delimiter = "__"
         self._artist = "_drawn_by_"
         self._sample = "sample-"
+        
+        # Danbooru - Gelbooru tags
         # __[tags...]_drawn_by_[artist]__[hash]
         # __[tags...]_[series]_drawn_by_[artist]__sample-[hash]
+        
+        # Deviant art tags
+        # [tags]_by_[artist]_[hash]
+        self.deviant_art_sep = "_by_"
+        self.deviant_art_delit = ("_", "-")
+        
     
     def test(self, string: str) -> dict:
-        if not string.startswith(self._delimiter):
-            return {}
+        if not string.startswith(self._delimiter): 
+            return self.deviant_art(string)
 
         raws = string.split(self._delimiter)
         tags_artist = raws[1]
@@ -457,6 +476,25 @@ class is_tagged_string(is_gallery_type):
             result["hash"] = img_hash
 
         return result
+    
+    def deviant_art(self, string: str) -> dict:
+        if self.deviant_art_sep in string:
+            tags, artist_hash = string.split(self.deviant_art_sep)
+            print(tags, artist_hash)
+            for delit in self.deviant_art_delit:
+                if delit in artist_hash:
+                    artist, img_hash = artist_hash.split(delit)
+                    break
+
+            return {
+                "type": self.gallery_type,
+                "raw": string,
+                "tags": tags,
+                "artist": artist,
+                "hash": img_hash
+            }
+        return {}
+            
 
 class is_photo(is_gallery_type):
     def __init__(self, dt_processor: Optional[datetime_processor] = None) -> None:

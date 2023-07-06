@@ -23,7 +23,7 @@ is_screenshot = is_screen_shot()
 is_date = is_date_time()
 is_misc = is_misc_semirandom()
 is_site = is_site_from()
-# Ordered by probability and importance
+# Ordered by importance and occurence 
 tests = [
     is_tagged
     ,is_date
@@ -45,9 +45,8 @@ tests = [
     ,
     # is random (default case)
 ]
-# o
 
-def run_test(tests: list[is_gallery_type], dump_file_path: str, dump=False, output_path="dump_files/output_dump.txt"):
+def run_test(tests: list[is_gallery_type], dump_file_path: str, output_path:str, dump=False):
     dump_file = open(dump_file_path, "r", encoding="utf8")
     file_lists = [x.strip() for x in dump_file.readlines()]
 
@@ -74,8 +73,10 @@ def run_test(tests: list[is_gallery_type], dump_file_path: str, dump=False, outp
     if output_dump is not None:
         output_dump.close()
 
-run_test(tests, "dump_files/file_path_dump.txt")
-# output_dump.close()
+run_test(tests, 
+         "dump_files/file_path_dump.txt", 
+         "dump_files/output_dump.txt", 
+         False)
 
 # print(is_pixiv.test("gwitch_suletta_ham_Mineori_108521179_p0"))
 
