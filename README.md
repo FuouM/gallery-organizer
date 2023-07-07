@@ -25,8 +25,9 @@ Organize massive amount of untagged randomly-named images (Experiment)
     - Comparison (slow)
     - AI?
 
-### Set up environment
+### Set up environment 
 ```
+# Python<3.11 - Important
 conda create -n "gallery-organizer" python<3.11
 conda activate gallery-organizer
 python -m venv venv
@@ -39,9 +40,14 @@ venv\Scripts\activate
 
 ### Libraries used
 ```
-pip install --upgrade tqdm # Important, else you'll get syscheckinterval error
+# Important, else you'll get syscheckinterval error
+pip install --upgrade tqdm 
+
 pip install git+https://github.com/casics/nostril.git
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+
+# Optional (for now)
+pip install matplotlib
 ```
 
 ### Repositories used
