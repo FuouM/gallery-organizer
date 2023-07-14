@@ -6,6 +6,10 @@ __pycache__/
 # Environments
 venv/
 
+ignore.py
+
+private_*.txt
+
 # Folders
 test/*
 dump_files/*

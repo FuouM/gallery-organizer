@@ -1,5 +1,14 @@
 import os
 
+def check_file(file_path):
+    response = input(f"{file_path} already exists. Do you want to replace it? (y/n): ")
+    return response.lower() == 'y'
+
+def user_continue():
+    response = input(f"Do you want to continue? (Append to existing file) (y/n): ")
+    return response.lower() == 'y'
+
+
 def get_file_paths(directory_path, absolute=False):
     if not os.path.isdir(directory_path):
         raise ValueError("Invalid directory path")
@@ -41,7 +50,15 @@ def dump_file_paths(input_folder: str, output_file: str):
     with open(output_file, "w", encoding="utf8") as f:
         for file_path in file_paths:
             f.write(f"{file_path}\n")
-            
+
+def dump_file_paths_ext_cond(input_folder: str, output_file: str, exts: list[str]):
+    file_paths = get_file_paths(input_folder)
+    with open(output_file, "w", encoding="utf8") as f:
+        for file_path in file_paths:
+            file_path: str
+            if any(file_path.endswith(ext) for ext in exts):
+                f.write(f"{file_path}\n")
+
 def read_filepath_dump(input_txt_path: str):
     with open(input_txt_path, "r", encoding="utf8") as f:
         for file_path in f.readlines():

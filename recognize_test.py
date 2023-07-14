@@ -20,11 +20,18 @@ test_gifs = [
     "1664081283396885.gif"
 ]
 
+# raw_test_file = "dump_files\\file_path_dump.txt"
+raw_test_file = "private_animated_dump.txt"
+with open(raw_test_file, "r", encoding="utf8") as f:
+    file_paths = f.readlines()
+
+
+
 danbooru = danbooru_recognizer()
 danbooru.load()
-res = danbooru.inference_gpu([test_folder + y for y in test_files])
-dump_pickle_path = 'public_test.pickle'
+res = danbooru.inference_gpu(["test/raw/" + y.strip() for y in file_paths], output_dump="")
+dump_pickle_path = 'private_animated.pickle'
 # for result, res_dict in res:
 #     print(result, res_dict)
-# danbooru.dump_pickle(res, dump_pickle_path)
+danbooru.dump_pickle(res, dump_pickle_path)
     
