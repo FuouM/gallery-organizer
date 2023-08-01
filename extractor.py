@@ -453,7 +453,7 @@ class is_tagged_string(is_gallery_type):
         
     
     def test(self, string: str) -> dict:
-        if not string.startswith(self._delimiter): 
+        if not string.startswith(self._delimiter) or not self._artist in string: 
             return self.deviant_art(string)
 
         raws = string.split(self._delimiter)
@@ -478,12 +478,15 @@ class is_tagged_string(is_gallery_type):
         return result
     
     def deviant_art(self, string: str) -> dict:
+        artist = None
+        img_hash = None
         if self.deviant_art_sep in string:
             tags, artist_hash = string.split(self.deviant_art_sep)
-            print(tags, artist_hash)
             for delit in self.deviant_art_delit:
                 if delit in artist_hash:
-                    artist, img_hash = artist_hash.split(delit)
+                    tmp = artist_hash.split(delit)
+                    
+                    artist, img_hash = tmp, "None"
                     break
 
             return {
@@ -536,10 +539,13 @@ class is_photo(is_gallery_type):
                     }
         if string.startswith(self.prefixes["fb"]):
             raws = string.split(self._delimiter)
+            datetime = raws[-1]
+            if datetime.isnumeric():
+                datetime = self.dt_processor.timestamp_to_datetime(int(raws[-1]), 1000)
             return {
                 "type": self.gallery_type,
                 "raw" : string,
-                "datetime": self.dt_processor.timestamp_to_datetime(int(raws[-1]), 1000),
+                "datetime": datetime,
             }
         if string.startswith(self.prefixes["photo"]):
             return {

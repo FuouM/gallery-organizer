@@ -48,6 +48,7 @@ class danbooru_recognizer:
         recognizer.dump_pickle(res, 'test.pickle')
         ```
     """
+    SIZE = 512
     def __init__(self, model_path: Optional[str] = None,
                  general_thres=0.9, char_thres=0.5,
                  config_path: Optional[str] = None) -> None:
@@ -106,7 +107,7 @@ class danbooru_recognizer:
         return torch.from_numpy(array).cuda()
         
     def image_to_tensor(self, image: Image.Image) -> torch.Tensor:
-        image = self.preprocess_image(image, (512, 512))
+        image = self.preprocess_image(image, (self.SIZE, self.SIZE))
         img_to_array = self.image_to_array(image)
         array_to_tensor = self.array_to_tensor(img_to_array)
         return array_to_tensor
@@ -135,7 +136,7 @@ class danbooru_recognizer:
             ret, frame = cap.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame = cv2.resize(frame, (512, 512))
+                frame = cv2.resize(frame, (self.SIZE, self.SIZE))
                 frame = np.expand_dims(frame.astype(np.float32), 0) / 255
                 frames.append(frame)
             else:
@@ -188,8 +189,13 @@ class danbooru_recognizer:
         i = 0
         output_dump_file = None
         if output_dump:
-            if os.path.isfile(output_dump) and check_file(output_dump):
-                open(output_dump, 'w').close()
+            if os.path.isfile(output_dump):
+                if check_file(output_dump):
+                    open(output_dump, 'w').close()
+                else:
+                    tmp = output_dump.split(".")
+                    output_dump = tmp[0] + f"_new.{tmp[-1]}"
+            print(f"Dumping to {output_dump}")
             output_dump_file = open(output_dump, "a", encoding=self.encoding)
             
         with torch.no_grad(), autocast(self.device):
@@ -205,7 +211,8 @@ class danbooru_recognizer:
                         result = self._predict_multi_avg(image_arrays)
                             
                     else:
-                        image_tensor = self.image_to_tensor(Image.open(file_path))
+                        img = Image.open(file_path)
+                        image_tensor = self.image_to_tensor(img)
                         result = self._predict(image_tensor)
 
                     res_dict = self.parse_result_to_dict(result, file_path)

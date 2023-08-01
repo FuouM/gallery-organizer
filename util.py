@@ -26,6 +26,24 @@ def get_file_paths(directory_path, absolute=False):
     
     return file_paths
 
+def get_file_paths_non_rec(directory_path, absolute=False):
+    if not os.path.isdir(directory_path):
+        raise ValueError("Invalid directory path")
+
+    file_paths = []
+    
+    for file in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, file)
+        if os.path.isfile(file_path):
+            if absolute:
+                file_path = os.path.abspath(file_path)
+            else:
+                file_path = os.path.relpath(file_path, directory_path)
+            file_paths.append(file_path)
+    
+    return file_paths
+
+
 def get_file_names(directory_path, ext=False):
     file_names = []
     for path in get_file_paths(directory_path):
