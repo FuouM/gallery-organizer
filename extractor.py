@@ -611,7 +611,8 @@ class is_site_from(is_gallery_type):
         self.site_prefixes = {
             "twitter": "twitter.com",
             "tumblr" : "tumblr_",
-            "seiga": "seiga.nicovideo.jp"
+            "seiga": "seiga.nicovideo.jp",
+            "tenor": "tenor_",
         }
     
     def test(self, string: str) -> dict:
@@ -632,9 +633,10 @@ class is_misc_semirandom(is_gallery_type):
             "sample": ["sample_", "sample-"],
             "default": (
                 "Untitled", "untitled", "file", "image_", "image-", "images", "image.", "i-",
-                "maxresdefault", 
+                "maxresdefault", "hqdefault-", "sddefault-",
                 "download", "Download", "Clipboard", "clipboard",
-                "Illustration", "illustration"
+                "Illustration", "illustration",
+                "image0-", "caption-",
             ),
             "ezgif": ["ezgif-"],
             

@@ -27,7 +27,6 @@ def init_extractors() -> list[is_gallery_type]:
     extractors = [
         is_tagged
         ,is_4chan
-        ,is_twitter
         ,is_pixiv
         ,is_yandere
         ,is_gelbooru
@@ -38,10 +37,11 @@ def init_extractors() -> list[is_gallery_type]:
         ,is_manga
         ,is_site
         ,is_misc
-        ,is_meaningful
-        ,is_photo_file
         ,is_screenshot
+        ,is_photo_file
         ,is_date
+        ,is_meaningful
+        ,is_twitter
     ]
     return extractors
 
@@ -54,7 +54,7 @@ def create_folder(directory: str, folder_name: str):
 
 
 directory = input("Enter folder path: ")
-
+verbose = False
 if os.path.isdir(directory):
     print(f"Working at {directory}")
     extractors = init_extractors()
@@ -64,6 +64,7 @@ if os.path.isdir(directory):
     create_folder(directory, "is_unknown")
     file_lists = get_file_paths_non_rec(directory, True)
     print(f"Total files: {len(file_lists)}")
+    st = time.time()
 
     for i, file_path in enumerate(tqdm(file_lists, desc="Processing files", unit="file")):
         file_raw = os.path.basename(file_path)
@@ -73,12 +74,14 @@ if os.path.isdir(directory):
         # print(file_raw)
         for extr in extractors:
             if tmp:= extr.test(filename):
-                print(f"{i:<3}| Match {extr.gallery_type} {tmp}")
+                if verbose:
+                    print(f"{i:<3}| Match {extr.gallery_type} {tmp}")
                 dir_path = os.path.join(directory, extr.gallery_type)
                 shutil.move(file_path, dir_path)
                 break
         else:
             shutil.move(file_path, os.path.join(directory, "is_unknown"))
+    print(f"Time taken: {time.time() - st:.2f} s")
 
         
     
